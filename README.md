@@ -5,23 +5,37 @@ Repository and deletes old images.
 
 ```
 $ ./docker-registry-retention -h
-usage: docker-registry-retention [-h] [-c CONFIG] [-d] -g REGISTRY
-                                 [-k KEYWORD] [-r RETAIN] -p REPOSITORY
+usage: docker-registry-retention [-h] [-c CONFIG] [-p PASSWORD] [-u USERNAME]
+                                 [-d] [-k KEYWORD] [-r RETAIN]
+                                 repository
 
 Script removes Docker images from Docker Registry leaving only latest N images
 
+positional arguments:
+  repository            docker repository, example:
+                        registry.example.com/mygroup/myproject
+
 optional arguments:
   -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        path to docker config file, default is
-                        ~/.docker/config.json
   -d, --dryrun          Run without deleting anything
-  -g REGISTRY, --registry REGISTRY
-                        docker registry domain
   -k KEYWORD, --keyword KEYWORD
                         filter tags using KEYWORD
   -r RETAIN, --retain RETAIN
                         retain N images, default is 10
-  -p REPOSITORY, --repository REPOSITORY
-                        docker repository path
+
+authentication arguments:
+  -c CONFIG, --config CONFIG
+                        path to docker config file, default is
+                        ~/.docker/config.json
+  -p PASSWORD, --password PASSWORD
+                        override docker registry password
+  -u USERNAME, --username USERNAME
+                        override docker registry username
+```
+
+# Docker
+
+Application can be started in docker environment:
+```
+docker run --rm mesouug/docker-registry-retention:latest
 ```
