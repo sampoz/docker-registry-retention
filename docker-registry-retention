@@ -142,7 +142,7 @@ def delete_images():
     for image in get_images_to_delete():
         print "Deleting image with tag: {}".format(image['tag'])
         image_url = "https://{}/v2/{}/manifests/{}".format(args.registry,
-                                                           args.repository,
+                                                           args.repo_path,
                                                            image['tag'])
 
         image_manifest = requests.get(url=image_url,
@@ -157,7 +157,7 @@ def delete_images():
                                             headers=get_headers(),
                                             method="DELETE")
         except KeyError as err:
-            print "Key not found '{}'".format(err)
+            print "Key not found {}".format(err)
 
 
 if __name__ == '__main__':
