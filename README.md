@@ -6,7 +6,7 @@ Repository and deletes old images.
 ```
 $ ./docker-registry-retention -h
 usage: docker-registry-retention [-h] [-c CONFIG] [-p PASSWORD] [-u USERNAME]
-                                 [-d] [-k KEYWORD] [-r RETAIN]
+                                 [-d] [-e EXCLUDE] [-k KEYWORD] [-r RETAIN]
                                  repository
 
 Script removes Docker images from Docker Registry leaving only latest N images
@@ -18,8 +18,10 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -d, --dryrun          Run without deleting anything
+  -e EXCLUDE, --exclude EXCLUDE
+                        exclude tags by keyword
   -k KEYWORD, --keyword KEYWORD
-                        filter tags using KEYWORD
+                        filter tags by keyword
   -r RETAIN, --retain RETAIN
                         retain N images, default is 10
 

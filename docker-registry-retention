@@ -29,8 +29,11 @@ def parse_arguments():
     parser.add_argument("-d", "--dryrun",
                         help="Run without deleting anything",
                         action='store_true')
+    parser.add_argument("-e", "--exclude",
+                        help="exclude tags by keyword",
+                        default=None)
     parser.add_argument("-k", "--keyword",
-                        help="filter tags using KEYWORD",
+                        help="filter tags by keyword",
                         default='.')
     parser.add_argument("-r", "--retain",
                         help="retain N images, default is 10",
@@ -112,11 +115,13 @@ def make_request(url, headers, params=None, method="GET"):
 
 
 def get_images_to_delete():
-    keyword = re.compile(r"{}".format(args.keyword))
+    exclude = re.compile(r".*{}.*".format(args.exclude))
+    keyword = re.compile(r".*{}.*".format(args.keyword))
     tags_url = "https://{}/v2/{}/tags/list".format(args.registry,
                                                    args.repo_path)
     list = make_request(url=tags_url, headers=get_headers()).json()['tags']
-    filtered_list = [tag for tag in list if re.match(keyword, tag)]
+    filtered_list = [tag for tag in list if not re.match(exclude, tag)]
+    filtered_list = [tag for tag in filtered_list if re.match(keyword, tag)]
     print("Discovered following tags: {}".format(', '.join(list)))
     print("Filtered List of tags: {}".format(', '.join(filtered_list)))
 
