@@ -23,6 +23,10 @@ def parse_arguments():
                             help="override docker registry password")
     auth_group.add_argument("-u", "--username",
                             help="override docker registry username")
+    auth_group.add_argument("-i", "--insecure",
+                            help="skip authing to remote. Please don't use this in prod",
+                            action='store_true',
+                            default=False)
     parser.add_argument("repository",
                         help="docker repository, example: " +
                         "registry.example.com/mygroup/myproject")
@@ -41,10 +45,9 @@ def parse_arguments():
                         type=int)
 
     args = parser.parse_args()
-
     args.registry, args.repo_path = args.repository.split('/', 1)
 
-    if ((args.username and args.password is None)
+    if ((args.username and args.password is None and args.insecure)
             or (args.password and args.username is None)):
         error('--username and --password must be specified together')
 
@@ -103,23 +106,25 @@ def get_headers(accept=False):
     return hdrs
 
 
-def make_request(url, headers, params=None, method="GET"):
+def make_request(url, headers, insecure, params=None, method="GET"):
     try:
         response = requests.request(url=url,
                                     params=params,
                                     headers=headers,
-                                    method=method)
+                                    method=method,
+                                    verify=not insecure)
     except requests.exceptions.ConnectionError as err:
         error(err)
     return response
 
 
-def get_images_to_delete():
+def get_images_to_delete(insecure):
     exclude = re.compile(r".*{}.*".format(args.exclude))
     keyword = re.compile(r".*{}.*".format(args.keyword))
     tags_url = "https://{}/v2/{}/tags/list".format(args.registry,
                                                    args.repo_path)
-    list = make_request(url=tags_url, headers=get_headers()).json()['tags']
+    lists_raw = make_request(url=tags_url, headers=get_headers(), insecure=insecure).json()
+    list = lists_raw['tags']
     filtered_list = [tag for tag in list if not re.match(exclude, tag)]
     filtered_list = [tag for tag in filtered_list if re.match(keyword, tag)]
     print("Discovered following tags: {}".format(', '.join(list)))
@@ -130,7 +135,7 @@ def get_images_to_delete():
         tag_url = "https://{}/v2/{}/manifests/{}".format(args.registry,
                                                          args.repo_path,
                                                          tag)
-        image_manifest = make_request(url=tag_url, headers=get_headers())
+        image_manifest = make_request(url=tag_url, headers=get_headers(), insecure=insecure)
         try:
             raw_json = image_manifest.json()['history'][0]['v1Compatibility']
             image_date = json.loads(raw_json)['created'][:19]
@@ -143,15 +148,16 @@ def get_images_to_delete():
     return sorted(images, key=lambda image: image['seconds'])[:-args.retain]
 
 
-def delete_images():
-    for image in get_images_to_delete():
+def delete_images(insecure):
+    for image in get_images_to_delete(insecure):
         print "Deleting image with tag: {}".format(image['tag'])
         image_url = "https://{}/v2/{}/manifests/{}".format(args.registry,
                                                            args.repo_path,
                                                            image['tag'])
 
         image_manifest = requests.get(url=image_url,
-                                      headers=get_headers(True))
+                                      headers=get_headers(True),
+                                      verify=not insecure)
         try:
             image_digest = image_manifest.headers['Docker-Content-Digest']
             image_url = "https://{}/v2/{}/manifests/{}".format(args.registry,
@@ -160,12 +166,16 @@ def delete_images():
             if not args.dryrun:
                 image_delete = make_request(url=image_url,
                                             headers=get_headers(),
-                                            method="DELETE")
+                                            method="DELETE",
+                                            insecure=insecure)
         except KeyError as err:
             print "Key not found {}".format(err)
 
 
 if __name__ == '__main__':
     args = parse_arguments()
-    bt = obtain_bearer_token(basic_auth(), args.repo_path, args.registry)
-    delete_images()
+    if not args.insecure:
+        bt = obtain_bearer_token(basic_auth(), args.repo_path, args.registry)
+    else:
+        bt = None
+    delete_images(args.insecure)
