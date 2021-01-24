@@ -164,10 +164,13 @@ def delete_images(insecure):
                                                                args.repo_path,
                                                                image_digest)
             if not args.dryrun:
-                image_delete = make_request(url=image_url,
-                                            headers=get_headers(),
-                                            method="DELETE",
-                                            insecure=insecure)
+                response = make_request(url=image_url,
+                                        headers=get_headers(),
+                                        method="DELETE",
+                                        insecure=insecure)
+                if not response.ok:
+                    print response
+                    print response.content
         except KeyError as err:
             print "Key not found {}".format(err)
 
